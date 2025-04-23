@@ -1,6 +1,7 @@
 import numpy as np
 from meshu import config
 from meshu.core import Mesh
+import sys
 
 def get_centroid(element:dict, mesh:Mesh)->np.ndarray:
     """要素の重心を出力
@@ -16,18 +17,26 @@ def get_centroid(element:dict, mesh:Mesh)->np.ndarray:
 
     return centroid
 
+
 def get_volume(element:dict, mesh:Mesh)->float:
-    """要素の体積を出力
+    """要素の体積(2次元の場合は面積)を出力
 
     Args:
-        element (dict): 要素
-        mesh (Mesh): Mesh
+        element (dict): 要素情報
+        mesh (Mesh): Meshオブジェクト
     Returns:
-        float: 体積
+        float: 体積(もしくは面積)
+    Note:
+        * 2次元の場合、要素は自己交差無しの多角形であること、並びに節点が反時計回りの順に定義されていることを仮定
     """
-    nodes = mesh.Nodes[element["node_tag"],:]
-    if element["type"] == 2:
-        return 0.5*np.abs(nodes[0,0]*(nodes[1,1]-nodes[2,1]) + nodes[1,0]*(nodes[2,1]-nodes[0,1]) + nodes[2,0]*(nodes[0,1]-nodes[1,1]))
+    if mesh.dim == 2:
+        nodes = mesh.Nodes[element["node_tag"],:]
+        nodes_ex = np.concatenate((nodes, nodes[0].reshape((1,2))), axis = 0)
+        V = 0.
+        for i in range(len(nodes)):
+            V += (nodes_ex[i,0] - nodes_ex[i+1,0])*(nodes_ex[i,1] + nodes_ex[i+1,1])
+        V *= 0.5
+        return V
     else:
         raise NotImplementedError
 
