@@ -21,6 +21,21 @@ def pickup_elementtag(mesh:Mesh, dim:int)->tuple[int]:
     return tuple(element_tag)
 
 
+def get_elements(mesh:Mesh, dim:int)->tuple[dict]:
+    """次元がdimの要素のタプルを出力
+
+    Args:
+        mesh (Mesh): Meshオブジェクト
+        dim (int): 次元
+    Returns:
+        tuple[dict]: 要素情報のタプル
+    """
+    tags = pickup_elementtag(mesh, dim)
+    elements = tuple([mesh.Elements[t] for t in tags])
+
+    return elements
+
+
 def get_physical_names(mesh:Mesh, dim:int = None)->tuple[str]:
     """次元がdimのPhysicalGroupの名前を出力
 
