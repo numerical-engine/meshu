@@ -42,25 +42,26 @@ def get_volume(element:dict, mesh:Mesh)->float:
 
 
 def get_facet_normal(element:dict, mesh:Mesh)->tuple[np.ndarray]:
-    """各ファセットの外向き単位法線ベクトルを出力
+    """要素にある各ファセットの外向き単位法線ベクトルを出力
 
     Args:
-        element (dict): 要素
-        mesh (Mesh): Mesh
+        element (dict): 要素情報
+        mesh (Mesh): Meshオブジェクト
     Returns:
-        tuple[np.ndarray]: 各ファセットの外向き単位法線ベクトル(定義順)
+        tuple[np.ndarray]: 外向き単位法線ベクトル
+    Note:
+        * 2次元の場合、要素は自己交差無しの多角形であること、並びに節点が反時計回りの順に定義されていることを仮定
     """
-    if element["type"] == 2:
-        node0, node1, node2 = mesh.Nodes[element["node_tag"],:]
-        x1, y1 = node0; x2, y2 = node1; x3, y3 = node2
-        l1 = np.sqrt((x1-x2)**2 + (y1-y2)**2)
-        l2 = np.sqrt((x2-x3)**2 + (y2-y3)**2)
-        l3 = np.sqrt((x3-x1)**2 + (y3-y1)**2)
-
-        n1 = np.array([y2-y1, x1-x2])/l1
-        n2 = np.array([y3-y2, x2-x3])/l2
-        n3 = np.array([y1-y3, x3-x1])/l3
-
-        return n1, n2, n3
+    if mesh.dim == 2:
+        nodes = mesh.Nodes[element["node_tag"],:]
+        nodes_ex = np.concatenate((nodes, nodes[0].reshape((1,2))), axis = 0)
+        facet_normal = []
+        for i in range(len(nodes)):
+            x1, y1 = nodes_ex[i]; x2, y2 = nodes_ex[i+1]
+            l = np.sqrt((x1-x2)**2 + (y1-y2)**2)
+            n = np.array([y2-y1, x1-x2])/l
+            facet_normal.append(n)
+        
+        return tuple(facet_normal)
     else:
         raise NotImplementedError
