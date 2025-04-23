@@ -32,8 +32,50 @@ def get_adjacency_matrix(mesh:Mesh, include_selfloop:bool = False, double_direct
             A[i,i] = 1
 
     A = A.tocoo()
-    if double_direction:
+    if double_direction == False:
         A = triu(A)
     A = np.stack(A.coords, axis = 0)
 
     return A
+
+def get_order(mesh:Mesh)->np.ndarray:
+    """各ノードのオーダーを計算
+
+    Args:
+        mesh (Mesh): Meshオブジェクト。
+    Returns:
+        np.ndarray: オーダー。shapeは(N, )。第i要素はi番目ノードのオーダー。
+    """
+    node_num = len(mesh.Nodes)
+    A = get_adjacency_matrix(mesh, double_direction = True)
+    order = np.array([len(np.where(A[0] == i)[0]) for i in range(node_num)])
+    return order
+
+def renumbering_node(mesh:Mesh)->None:
+    """Reverse Cuthill Mckeeによる節点タグの再分配
+
+    Args:
+        mesh (Mesh): 分配前Meshオブジェクト
+    """
+    node_num = len(mesh.Nodes)
+    A = get_adjacency_matrix(mesh, double_direction = True)
+    order = np.array([len(np.where(A[0] == i)[0]) for i in range(node_num)])
+
+    new_tag = [np.argmin(order)]
+    for i in range(node_num):
+        adj = A[1,np.where(A[0] == new_tag[i])[0]]
+        mask = [a not in new_tag for a in adj]
+        adj = adj[mask]
+        adj_order = np.array([order[a] for a in adj])
+        arg_sort = np.argsort(adj_order)
+        adj_sort = adj[arg_sort]
+        new_tag += list(adj_sort)
+
+        if len(new_tag) == node_num:
+            break
+    
+    new_tag = np.array(new_tag)
+    mesh.Nodes = mesh.Nodes[new_tag,]
+    for i in range(len(mesh.Elements)):
+        new_node_tag = tuple(np.where(new_tag == old_node_tag)[0][0] for old_node_tag in mesh.Elements[i]["node_tag"])
+        mesh.Elements[i]["node_tag"] = new_node_tag
