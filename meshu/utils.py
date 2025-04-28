@@ -86,3 +86,41 @@ def get_phystag_node(mesh:Mesh)->np.ndarray:
             phys_tag[n] = e1d["phys_tag"]
     
     return phys_tag
+
+def get_edge(mesh:Mesh, i:int, j:int)->dict:
+    """e = (i,j)のエッジ情報を出力
+
+    Args:
+        mesh (Mesh): Meshオブジェクト。
+        i (int): 開始点ノードtag。
+        j (int): 終了点ノードtag。
+    Returns:
+        dict: エッジ情報。(i,j)なるエッジがない場合はNoneを返す。
+    """
+    edges = get_elements(mesh, 1)
+
+    for edge in edges:
+        if (i == edge["node_tag"][0]) & (j == edge["node_tag"][1]):
+            return edge
+    return None
+
+def get_phystag_between_nodes(mesh:Mesh, i:int, j:int, except_val:int = -1)->int:
+    """エッジ(i,j)のphysical tagを出力
+
+    Args:
+        mesh (Mesh): Meshオブジェクト。
+        i (int): 開始点ノードtag。
+        j (int): 終了点ノードtag。
+        except_val (int): (i, j)がない場合に返す値。
+    Returns:
+        int: physical tag。
+    """
+    element = get_edge(mesh, i, j)
+    if element is None:
+        element = get_edge(mesh, j, i)
+        if element is None:
+            return except_val
+        else:
+            return element["phys_tag"]
+    else:
+        return element["phys_tag"]
