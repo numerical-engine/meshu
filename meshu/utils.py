@@ -2,6 +2,7 @@ import numpy as np
 from meshu import config
 from meshu.core import Mesh
 import pivtk
+import sys
 
 def pickup_elementtag(mesh:Mesh, dim:int)->tuple[int]:
     """次元数がdimの要素タグを出力
@@ -67,3 +68,21 @@ def Graph2UnstructuredGrid(V:np.ndarray, E:np.ndarray)->pivtk.geom.unstructured_
     """
     cells = [{"type" : 3, "indice" : np.array([e_st,e_fn])} for e_st, e_fn in zip(E[0], E[1])]
     return pivtk.geom.unstructured_grid(points = V, cells = tuple(cells))
+
+
+def get_phystag_node(mesh:Mesh)->np.ndarray:
+    """境界にあるノードに対し、属している境界のPhysical Tagを出力。
+
+    境界上でないノードには、-1のTagを与える。
+    Args:
+        mesh (Mesh): Meshオブジェクト。
+    Returns:
+        np.ndarray: 境界ノードのPhysical Tag情報。
+    """
+    phys_tag = -np.ones(len(mesh.Nodes))
+    element1d = get_elements(mesh, mesh.dim-1)
+    for e1d in element1d:
+        for n in e1d["node_tag"]:
+            phys_tag[n] = e1d["phys_tag"]
+    
+    return phys_tag
