@@ -124,3 +124,69 @@ def get_phystag_between_nodes(mesh:Mesh, i:int, j:int, except_val:int = -1)->int
             return element["phys_tag"]
     else:
         return element["phys_tag"]
+
+def get_phystag_COO(mesh:Mesh, COO:np.ndarray, except_val:int = -1)->np.ndarray:
+    """COO形式で書き表されたエッジ情報に対し、各エッジのphys tagを出力。
+
+    Args:
+        mesh (Mesh): Meshオブジェクト。
+        COO (np.ndarray): COO形式隣接行列。shapgeは(2, E)
+        except_val (int): phys_tagがない場合のtag
+
+    Returns:
+        np.ndarray: phys tag。
+    """
+    phys_tag = np.array([get_phystag_between_nodes(mesh, i, j, except_val) for i, j in zip(COO[0], COO[1])])
+    return phys_tag
+
+def isin_COO(COO:np.ndarray, i:int, j:int)->bool:
+    """COOに(i,j)のエッジが存在するか否かを判定
+
+    Args:
+        COO (np.ndarray): COO形式隣接行列。
+        i (int): 開始ノード点。
+        j (int): 終了ノード点。
+    Returns:
+        bool: 存在する場合True。
+    """
+    return np.any((COO[0] == i)*(COO[1] == j))
+
+def get_edge_list(node_tags:np.ndarray, COO:np.ndarray)->list:
+    """ノード番号の順列から成る要素に対し、要素を構成するエッジ番号のリストを出力する。
+
+    Args:
+        node_tags (np.ndarray): ノード番号順列。
+        COO (np.ndarray): COO形式隣接行列。
+    Returns:
+        list: エッジ番号eのリスト。逆向きのエッジの場合-e。
+    Note:
+        * node_tagsは反時計回りの順に並ぶ。
+        * エッジは反時計回りの順に並ぶ。
+    """
+    node_tags = np.concatenate((node_tags, np.array([node_tags])))
+    edge_list = []
+    for n_st, n_fn in zip(node_tags[:-1], node_tags[1:]):
+        idx = np.where((COO[0] == n_st)*(COO[1] == n_fn))[0]
+        if len(idx) == 0:
+            idx = np.where((COO[1] == n_st)*(COO[0] == n_fn))[0]
+            assert len(idx) > 0
+            edge_list.append(-idx)
+        else:
+            edge_list.append(idx[0])
+    
+    return edge_list
+
+
+def get_element_edge_list(element:dict, COO:np.ndarray)->list:
+    """要素を構成するエッジ番号のリストを出力する。
+
+    Args:
+        element (dict): 要素情報
+        COO (np.ndarray): COO形式隣接行列。
+    Returns:
+        list: エッジ番号のリスト。
+    Note:
+        * エッジは反時計回りの順に並ぶ。
+    """
+    node_tags = element["node_tag"]
+    return get_edge_list(node_tags, COO)
